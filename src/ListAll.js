@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
-import axios from "axios";
 import { Link } from "react-router-dom";
-
+import { ShyftSdk, Network } from "@shyft-to/js";
 
 const ListAll = () => {
   const [walletAddress, setwalletAddress] = useState(null);
   const [data, setData] = useState(null);
   const [netWrk, setNetWork] = useState("devnet");
-  const xAPIKey = ""; //Your X-API-KEY here
+  const xAPIKey = "ycWPZKtpir3kYHiO"; //Your X-API-KEY here
 
   //code for connecting wallet
   const solanaConnect = async () => {
@@ -29,15 +28,12 @@ const ListAll = () => {
       };
 
       if (wallet.address) {
-        console.log(wallet.address);
-
         //we will get the wallet address here, we can assign it to a state variable
         setwalletAddress(wallet.address);
         const accountInfo = await connection.getAccountInfo(
           new PublicKey(wallet.address),
           "confirmed"
         );
-        console.log(accountInfo);
       }
     } catch (err) {
       console.log(err);
@@ -45,28 +41,22 @@ const ListAll = () => {
   };
 
   useEffect(() => {
-    let reqUrl = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=${netWrk}&wallet=${walletAddress}`;
+    const shyft = new ShyftSdk({
+      apiKey: xAPIKey,
+      network: Network.Devnet,
+    });
+
+    const fetchData = async () => {
+      const token = await shyft.wallet.getAllTokenBalance({
+        wallet: walletAddress,
+      });
+      setData(token);
+    };
+
     if (walletAddress) {
-      axios({
-        // Endpoint to perform request
-        url: reqUrl,
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            "x-api-key": xAPIKey,
-        },
-      })
-        // Handle the response from backend here
-        .then((res) => {
-          console.log(res.data);
-          setData(res.data.result);
-        })
-        // Catch errors if any
-        .catch((err) => {
-          console.warn(err);
-        });
+      fetchData();
     }
-  }, [walletAddress, netWrk]);
+  }, [walletAddress]);
 
   return (
     <div>
@@ -75,19 +65,21 @@ const ListAll = () => {
           <h2 className="display-4 text-center">
             List All Your Fungible Tokens using Shyft APIs
           </h2>
-           {!walletAddress && (<div>
-            <h4 className="text-center py-3 text-primary">
-              Connect Your Wallet to get started
-            </h4>
-            <div className="text-center pt-3">
-              <button
-                className="btn btn-primary px-4 py-2"
-                onClick={solanaConnect}
-              >
-                Connect Wallet
-              </button>
+          {!walletAddress && (
+            <div>
+              <h4 className="text-center py-3 text-primary">
+                Connect Your Wallet to get started
+              </h4>
+              <div className="text-center pt-3">
+                <button
+                  className="btn btn-primary px-4 py-2"
+                  onClick={solanaConnect}
+                >
+                  Connect Wallet
+                </button>
+              </div>
             </div>
-          </div>)}
+          )}
         </div>
 
         <div className="py-3">
@@ -117,17 +109,24 @@ const ListAll = () => {
                   data.map((tokn) => (
                     <tr key={tokn.address}>
                       <td className="w-25 border-2">
-                        <img src={tokn.info.image} className="img-fluid w-75 mx-auto" alt="" />
+                        <img
+                          src={tokn.info.image}
+                          className="img-fluid w-75 mx-auto"
+                          alt=""
+                        />
                       </td>
                       <td className="w-50 border-2">
                         <Link
                           to={`/view-details?token_address=${tokn.address}&network=${netWrk}`}
                           target="_blank"
-                        ><h4>{tokn.info.name}</h4>
+                        >
+                          <h4>{tokn.info.name}</h4>
                           {tokn.address}
                         </Link>
                       </td>
-                      <td className="w-25 border-2">{tokn.balance} {tokn.info.symbol}</td>
+                      <td className="w-25 border-2">
+                        {tokn.balance} {tokn.info.symbol}
+                      </td>
                     </tr>
                   ))}
               </tbody>

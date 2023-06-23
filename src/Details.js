@@ -15,31 +15,34 @@ const Details = () => {
   const [curSup, setCurSup] = useState(null);
 
   const xAPIKey = "ycWPZKtpir3kYHiO"; //Your X-API-KEY here
-  const ApiParams = window.location.search.substring(1);
+  const ApiParams = new URLSearchParams(window.location.search);
+  const token_address = ApiParams.get("token_address");
   let shyft = new ShyftSdk({
     apiKey: xAPIKey,
     network: Network.Devnet,
   });
   useEffect(() => {
-    (async () => {
-      const balance = await shyft.wallet.getBalance({
-        wallet: ApiParams,
-      });
-      if (balance.success) {
-        setName(balance.result.name);
-        setDesc(balance.result.description);
-        setimage(balance.result.image);
-        setSym(balance.result.symbol);
-        setTokAddr(balance.result.address);
-        setmint(balance.result.mint_authority);
-        setFreeze(balance.result.freeze_authority);
-        setDeci(balance.result.decimals);
-        setCurSup(balance.result.current_supply);
-      } else {
-        setName("Failed to Load Data");
+    const fetchData = async () => {
+      try {
+        const info = await shyft.token.getInfo({
+          tokenAddress: token_address,
+        });
+        setName(info.name);
+        setDesc(info.description);
+        setimage(info.image);
+        setSym(info.symbol);
+        setTokAddr(info.address);
+        setmint(info.mint_authority);
+        setFreeze(info.freeze_authority);
+        setDeci(info.decimals);
+        setCurSup(info.current_supply);
+      } catch (error) {
+        console.log(error);
       }
-    })();
-  }, [ApiParams, shyft.wallet]);
+    };
+
+    fetchData();
+  }, [shyft.token, token_address]);
   return (
     <div>
       <div className="container">
